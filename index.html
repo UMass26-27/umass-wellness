@@ -200,8 +200,9 @@
             cursor: pointer;
             transition: fill .12s;
         }
-        .br:hover  { fill: #ffcdd2; }
-        .br.on     { fill: #e53935; stroke: #b71c1c; stroke-width: 2; }
+        .br:hover    { fill: #fff9c4; }
+        .br.soreness { fill: #fdd835; stroke: #f9a825; stroke-width: 2; }
+        .br.pain     { fill: #e53935; stroke: #b71c1c; stroke-width: 2; }
 
         .tag-row { margin-top: 12px; min-height: 28px; }
 
@@ -209,9 +210,6 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ef9a9a;
             border-radius: 20px;
             padding: 3px 10px;
             font-size: .73rem;
@@ -219,14 +217,45 @@
             margin: 3px;
         }
 
+        .tag.soreness {
+            background: #fff9c4;
+            color: #795400;
+            border: 1px solid #fdd835;
+        }
+
+        .tag.pain {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
         .tag button {
             background: none;
             border: none;
-            color: #c62828;
             cursor: pointer;
             font-size: .85rem;
             line-height: 1;
             padding: 0;
+            color: inherit;
+        }
+
+        .map-legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 14px;
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .map-legend span { display: flex; align-items: center; gap: 5px; }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            display: inline-block;
         }
 
         /* ── Notes ── */
@@ -284,7 +313,7 @@
 <body>
 
 <header>
-    <img src="umass-logo.png" alt="UMass"
+    <img src="Administrative/new umass logo.png" alt="UMass"
          onerror="this.style.display='none'">
     <div>
         <h1>Daily Wellness Check-In</h1>
@@ -417,9 +446,11 @@
     <!-- ── Body Heat Map ── -->
     <div class="card">
         <div class="card-title">Pain / Soreness Location</div>
-        <p style="font-size:.78rem;color:var(--muted);margin-bottom:16px">
-            Tap any body region where you feel pain or soreness today.
-        </p>
+        <div class="map-legend">
+            <span><span class="legend-dot" style="background:#fdd835;border:1px solid #f9a825"></span>1 tap = Soreness</span>
+            <span><span class="legend-dot" style="background:#e53935;border:1px solid #b71c1c"></span>2 taps = Pain</span>
+            <span><span class="legend-dot" style="background:#e8e8e8;border:1px solid #bbb"></span>3 taps = Clear</span>
+        </div>
 
         <div class="body-map-wrap">
 
@@ -544,7 +575,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  CONFIG — paste your Google Apps Script deployment URL below
 // ─────────────────────────────────────────────────────────────────────────────
-const SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSc4gPABFMGP2K56itjfwfSUnF3KyBBK1oWN1wUkfNPwmZVdE4rE5kfgheNtBNdhMZHw/exec';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Init date
@@ -581,18 +612,24 @@ function tick(sliderId, valId, positive, min, max, suffix) {
 // ─────────────────────────────────────────────────────────────────────────────
 //  Body map
 // ─────────────────────────────────────────────────────────────────────────────
-const selected = new Set();
+// Map of region → 'soreness' | 'pain'
+const selected = new Map();
 
 document.querySelectorAll('.br').forEach(el => {
     el.addEventListener('click', () => {
-        const r = el.dataset.r;
-        if (selected.has(r)) {
-            selected.delete(r);
-            el.classList.remove('on');
-        } else {
-            selected.add(r);
-            el.classList.add('on');
-        }
+        const r     = el.dataset.r;
+        const state = selected.get(r);
+        const next  = state === undefined ? 'soreness' : state === 'soreness' ? 'pain' : null;
+
+        // Update all matching regions (front + back can share same label)
+        document.querySelectorAll(`.br[data-r="${r}"]`).forEach(node => {
+            node.classList.remove('soreness', 'pain');
+            if (next) node.classList.add(next);
+        });
+
+        if (next) selected.set(r, next);
+        else      selected.delete(r);
+
         renderTags();
     });
 });
@@ -603,8 +640,8 @@ function renderTags() {
         row.innerHTML = '<span style="font-size:.8rem;color:var(--muted)">No areas selected</span>';
         return;
     }
-    row.innerHTML = [...selected].map(r =>
-        `<span class="tag">${r}
+    row.innerHTML = [...selected.entries()].map(([r, state]) =>
+        `<span class="tag ${state}">${r} <small>(${state})</small>
             <button onclick="deselect('${r.replace(/'/g, "\\'")}')">×</button>
          </span>`
     ).join('');
@@ -612,7 +649,7 @@ function renderTags() {
 
 function deselect(r) {
     selected.delete(r);
-    document.querySelectorAll(`.br[data-r="${r}"]`).forEach(el => el.classList.remove('on'));
+    document.querySelectorAll(`.br[data-r="${r}"]`).forEach(el => el.classList.remove('soreness', 'pain'));
     renderTags();
 }
 
@@ -639,7 +676,7 @@ async function submitForm() {
         stress:       document.getElementById('s-stress').value,
         soreness:     document.getElementById('s-sore').value,
         mood:         document.getElementById('s-mood').value,
-        soreAreas:    [...selected].join(', ') || 'None',
+        soreAreas:    [...selected.entries()].map(([r, s]) => `${r} (${s})`).join(', ') || 'None',
         notes:        document.getElementById('f-notes').value.trim(),
     };
 
@@ -691,7 +728,7 @@ function resetForm() {
         ['s-mood',  'v-mood',   true,  1, 10, ''],
     ].forEach(args => tick(...args));
     selected.clear();
-    document.querySelectorAll('.br.on').forEach(el => el.classList.remove('on'));
+    document.querySelectorAll('.br.soreness, .br.pain').forEach(el => el.classList.remove('soreness', 'pain'));
     renderTags();
 }
 
