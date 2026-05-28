@@ -443,6 +443,33 @@
         </div>
     </div>
 
+    <!-- ── Nutrition & Hydration ── -->
+    <div class="card">
+        <div class="card-title">Nutrition &amp; Hydration</div>
+
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-label">🍽️ Meals / Snacks</span>
+                <span class="metric-value" id="v-meals">3</span>
+            </div>
+            <div class="metric-hint">How many meals or snacks did you have today?</div>
+            <input type="range" id="s-meals" min="1" max="8" step="1" value="3"
+                   oninput="tick('s-meals','v-meals',true,1,8,'')">
+            <div class="slider-ends"><span>1</span><span>8</span></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-label">💧 Hydration</span>
+                <span class="metric-value" id="v-hydration">64</span>
+            </div>
+            <div class="metric-hint">How many oz of water did you drink today?</div>
+            <input type="range" id="s-hydration" min="0" max="200" step="8" value="64"
+                   oninput="tick('s-hydration','v-hydration',true,0,200,' oz')">
+            <div class="slider-ends"><span>0 oz</span><span>200 oz</span></div>
+        </div>
+    </div>
+
     <!-- ── Body Heat Map ── -->
     <div class="card">
         <div class="card-title">Pain / Soreness Location</div>
@@ -602,11 +629,13 @@ function tick(sliderId, valId, positive, min, max, suffix) {
 
 // Init all sliders on load
 [
-    ['s-slp-h', 'v-slp-h', true,  1, 12, ''],
-    ['s-slp-q', 'v-slp-q', true,  1, 10, ''],
-    ['s-stress','v-stress', false, 1, 10, ''],
-    ['s-sore',  'v-sore',   false, 1, 10, ''],
-    ['s-mood',  'v-mood',   true,  1, 10, ''],
+    ['s-slp-h',     'v-slp-h',     true,  1,   12,  ''],
+    ['s-slp-q',     'v-slp-q',     true,  1,   10,  ''],
+    ['s-stress',    'v-stress',    false, 1,   10,  ''],
+    ['s-sore',      'v-sore',      false, 1,   10,  ''],
+    ['s-mood',      'v-mood',      true,  1,   10,  ''],
+    ['s-meals',     'v-meals',     true,  1,   8,   ''],
+    ['s-hydration', 'v-hydration', true,  0,   200, ' oz'],
 ].forEach(args => tick(...args));
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -676,6 +705,8 @@ async function submitForm() {
         stress:       document.getElementById('s-stress').value,
         soreness:     document.getElementById('s-sore').value,
         mood:         document.getElementById('s-mood').value,
+        meals:        document.getElementById('s-meals').value,
+        hydration:    document.getElementById('s-hydration').value,
         soreAreas:    [...selected.entries()].map(([r, s]) => `${r} (${s})`).join(', ') || 'None',
         notes:        document.getElementById('f-notes').value.trim(),
     };
@@ -717,15 +748,19 @@ function resetForm() {
     ['f-name','f-notes'].forEach(id => document.getElementById(id).value = '');
     ['f-sport','f-day'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('s-slp-h').value = 7;
+    document.getElementById('s-meals').value = 3;
+    document.getElementById('s-hydration').value = 64;
     ['s-slp-q','s-stress','s-sore','s-mood'].forEach(id =>
         document.getElementById(id).value = 5
     );
     [
-        ['s-slp-h', 'v-slp-h', true,  1, 12, ''],
-        ['s-slp-q', 'v-slp-q', true,  1, 10, ''],
-        ['s-stress','v-stress', false, 1, 10, ''],
-        ['s-sore',  'v-sore',   false, 1, 10, ''],
-        ['s-mood',  'v-mood',   true,  1, 10, ''],
+        ['s-slp-h',     'v-slp-h',     true,  1,   12,  ''],
+        ['s-slp-q',     'v-slp-q',     true,  1,   10,  ''],
+        ['s-stress',    'v-stress',     false, 1,   10,  ''],
+        ['s-sore',      'v-sore',      false, 1,   10,  ''],
+        ['s-mood',      'v-mood',      true,  1,   10,  ''],
+        ['s-meals',     'v-meals',     true,  1,   8,   ''],
+        ['s-hydration', 'v-hydration', true,  0,   200, ' oz'],
     ].forEach(args => tick(...args));
     selected.clear();
     document.querySelectorAll('.br.soreness, .br.pain').forEach(el => el.classList.remove('soreness', 'pain'));
@@ -760,7 +795,7 @@ function doPost(e) {
     const headers = [
       'Timestamp','Date','Name','Sport','Day Type',
       'Sleep Hours','Sleep Quality','Stress','Soreness','Mood / Energy',
-      'Sore Areas','Notes'
+      'Meals','Hydration (oz)','Sore Areas','Notes'
     ];
     sheet.appendRow(headers);
     const hdr = sheet.getRange(1, 1, 1, headers.length);
