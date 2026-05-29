@@ -1,4 +1,4 @@
-// ─────────────────────────────────────────────────────────────────────────────
+// https://umass26-27.github.io/umass-wellness/─────────────────────────────────────────────────────────────────────────────
 //  UMass Athletics — Daily Wellness Reminder + Compliance Check
 //
 //  SETUP:
@@ -13,7 +13,7 @@
 
 const FORM_URL         = 'https://YOUR_GITHUB_USERNAME.github.io/umass-wellness/';
 const COMPLIANCE_EMAIL = 'your@email.com';   // who receives the daily compliance report
-const REMINDER_HOUR    = 7;                   // 7 AM — morning reminder to athletes
+const REMINDER_HOUR    = 6;                   // 6 AM — morning reminder to athletes
 const COMPLIANCE_HOUR  = 12;                  // Noon — compliance report to you
 const WELLNESS_SHEET   = 'Wellness';          // sheet where form data lands
 const ROSTER_SHEET     = 'Roster';            // sheet with athlete name + email list
@@ -43,7 +43,7 @@ Save this link to your phone's home screen so it's always one tap away.
     if (!email) return;
     const firstName    = name.split(' ')[0];
     const personalBody = body.replace('{NAME}', firstName);
-    GmailApp.sendEmail(email, subject, personalBody);
+    MailApp.sendEmail(email, subject, personalBody);
   });
 
   Logger.log(`Reminder sent to ${athletes.length} athletes.`);
@@ -69,7 +69,7 @@ function sendComplianceReport() {
   body += `❌ Missing  (${missing.length}): ${missing.map(a => a.name).join(', ') || 'None'}\n\n`;
   body += `View full data: https://docs.google.com/spreadsheets/d/${SpreadsheetApp.getActiveSpreadsheet().getId()}`;
 
-  GmailApp.sendEmail(COMPLIANCE_EMAIL, subject, body);
+  MailApp.sendEmail(COMPLIANCE_EMAIL, subject, body);
   Logger.log(`Compliance report sent. ${done.length}/${athletes.length} submitted.`);
 }
 
@@ -100,7 +100,7 @@ UMass Athletics Sports Performance`;
   missing.forEach(({ name, email }) => {
     const firstName    = name.split(' ')[0];
     const personalBody = body.replace('{NAME}', firstName);
-    GmailApp.sendEmail(email, subject, personalBody);
+    MailApp.sendEmail(email, subject, personalBody);
   });
 
   Logger.log(`Follow-up nudge sent to ${missing.length} athletes.`);
