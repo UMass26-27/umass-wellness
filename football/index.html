@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UMass Football — Daily Wellness Check-In</title>
+    <style>
+        :root {
+            --maroon: #5C0000;
+            --maroon-hover: #7a0000;
+            --bg: #f4f4f4;
+            --card: #ffffff;
+            --text: #1a1a1a;
+            --muted: #666;
+            --border: #ddd;
+            --green: #2e7d32;
+            --yellow: #e65100;
+            --red: #c62828;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        header {
+            background: var(--maroon);
+            color: white;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.35);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header img {
+            height: 46px;
+            object-fit: contain;
+        }
+
+        header h1 { font-size: 1.15rem; font-weight: 700; line-height: 1.2; }
+        header p  { font-size: 0.78rem; opacity: .8; margin-top: 2px; }
+
+        /* ── Layout ── */
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px 16px 48px;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 5px rgba(0,0,0,.09);
+        }
+
+        .card-title {
+            font-size: .95rem;
+            font-weight: 800;
+            color: var(--maroon);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--maroon);
+            margin-bottom: 18px;
+        }
+
+        /* ── Athlete Info ── */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .grid-2:last-child { margin-bottom: 0; }
+
+        .field label {
+            display: block;
+            font-size: .72rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 5px;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: .95rem;
+            color: var(--text);
+            background: white;
+            appearance: none;
+            -webkit-appearance: none;
+            transition: border-color .15s;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            outline: none;
+            border-color: var(--maroon);
+        }
+
+        /* ── Sliders ── */
+        .metric { margin-bottom: 22px; }
+        .metric:last-child { margin-bottom: 0; }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 5px;
+        }
+
+        .metric-label { font-size: .92rem; font-weight: 600; }
+
+        .metric-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            line-height: 1;
+            min-width: 44px;
+            text-align: right;
+            transition: color .2s;
+        }
+
+        .metric-hint {
+            font-size: .72rem;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e0e0e0;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--maroon);
+            cursor: pointer;
+            box-shadow: 0 1px 5px rgba(0,0,0,.3);
+            border: 2px solid white;
+        }
+
+        .slider-ends {
+            display: flex;
+            justify-content: space-between;
+            font-size: .68rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* ── Body Map ── */
+        .body-map-wrap {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .body-view { text-align: center; flex: 1; min-width: 120px; max-width: 160px; }
+
+        .body-view h3 {
+            font-size: .72rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 6px;
+        }
+
+        .body-view svg { width: 100%; }
+
+        .br {
+            fill: #e8e8e8;
+            stroke: #bbb;
+            stroke-width: 1.5;
+            cursor: pointer;
+            transition: fill .12s;
+        }
+        .br:hover    { fill: #fff9c4; }
+        .br.soreness { fill: #fdd835; stroke: #f9a825; stroke-width: 2; }
+        .br.pain     { fill: #e53935; stroke: #b71c1c; stroke-width: 2; }
+
+        .tag-row { margin-top: 12px; min-height: 28px; }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: .73rem;
+            font-weight: 600;
+            margin: 3px;
+        }
+
+        .tag.soreness {
+            background: #fff9c4;
+            color: #795400;
+            border: 1px solid #fdd835;
+        }
+
+        .tag.pain {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .tag button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: .85rem;
+            line-height: 1;
+            padding: 0;
+            color: inherit;
+        }
+
+        .map-legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 14px;
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .map-legend span { display: flex; align-items: center; gap: 5px; }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        /* ── Notes ── */
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-size: .9rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            color: var(--text);
+        }
+        textarea:focus { outline: none; border-color: var(--maroon); }
+
+        /* ── Submit ── */
+        .submit-btn {
+            display: block;
+            width: 100%;
+            padding: 17px;
+            background: var(--maroon);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            cursor: pointer;
+            letter-spacing: .5px;
+            transition: background .15s, transform .1s;
+        }
+        .submit-btn:hover    { background: var(--maroon-hover); }
+        .submit-btn:active   { transform: scale(.98); }
+        .submit-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+        /* ── Toast ── */
+        .toast {
+            margin-top: 14px;
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-size: .9rem;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+        }
+        .toast.ok  { display: block; background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+        .toast.err { display: block; background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+
+        /* ── Responsive ── */
+        @media (max-width: 420px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="../umass-logo.png" alt="UMass"
+         onerror="this.style.display='none'">
+    <div>
+        <h1>Daily Wellness Check-In</h1>
+        <p>UMass Football</p>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- ── Athlete Info ── -->
+    <div class="card">
+        <div class="card-title">Athlete Info</div>
+        <div class="grid-2">
+            <div class="field">
+                <label for="f-name">Name *</label>
+                <input type="text" id="f-name" placeholder="First Last" autocomplete="name">
+            </div>
+            <div class="field">
+                <label for="f-date">Date *</label>
+                <input type="date" id="f-date">
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="field">
+                <label for="f-sport">Position *</label>
+                <select id="f-sport">
+                    <option value="">Select…</option>
+                    <option>QB</option>
+                    <option>RB</option>
+                    <option>WR</option>
+                    <option>TE</option>
+                    <option>OL</option>
+                    <option>DL</option>
+                    <option>LB</option>
+                    <option>CB</option>
+                    <option>S</option>
+                    <option>K</option>
+                    <option>P</option>
+                    <option>LS</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="f-day">Day Type</label>
+                <select id="f-day">
+                    <option value="">Select…</option>
+                    <option>Practice</option>
+                    <option>Game Day</option>
+                    <option>Recovery</option>
+                    <option>Off Day</option>
+                    <option>Travel</option>
+                    <option>Lift Only</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Wellness Sliders ── -->
+    <div class="card">
+        <div class="card-title">Wellness Scores</div>
+
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-label">😴 Sleep — Hours</span>
+                <span class="metric-value" id="v-slp-h">7</span>
+            </div>
+            <div class="metric-hint">How many hours did you sleep last night?</div>
+            <input type="range" id="s-slp-h" min="1" max="12" step="0.5" value="7"
+                   oninput="tick('s-slp-h','v-slp-h',true,1,12,' hrs')">
+            <div class="slider-ends"><span>1 hr</span><span>12 hrs</span></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-label">💤 Sleep — Quality</span>
+                <span class="metric-value" id="v-slp-q">5</span>
+            </div>
+            <div class="metric-hint">How restful was your sleep? (1 = terrible · 10 = great)</div>
+            <input type="range" id="s-slp-q" min="1" max="10" value="5"
+                   oninput="tick('s-slp-q','v-slp-q',true,1,10,'')">
+            <div class="slider-ends"><span>Terrible</span><span>Great</span></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-label">🧠 Stress</span>
+                <span class="metric-value" id="v-stress">5</span>
+            </div>
+            <div class="metric-hint">How stressed are you feeling? (1 = relaxed · 10 = very stressed)</div>
+            <input type="range" id="s-stress" min="1" max="10" value="5"
+                   oninput="tick('s-stress','v-stress',false,1,10,'')">
+            <div class="slider-ends"><span>Relaxed</span><span>Stressed</span></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-label">💪 Soreness</span>
+                <span class="metric-value" id="v-sore">5</span>
+            </div>
+            <div class="metric-hint">Overall body soreness? (1 = none · 10 = very sore)</div>
+            <input type="range" id="s-sore" min="1" max="10" value="5"
+                   oninput="tick('s-sore','v-sore',false,1,10,'')">
+            <div class="slider-ends"><span>None</span><span>Very Sore</span></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-label">⚡ Mood / Energy</span>
+                <span class="metric-value" id="v-mood">5</span>
+            </div>
+            <div class="metric-hint">How is your energy and mood today? (1 = low · 10 = great)</div>
+            <input type="range" id="s-mood" min="1" max="10" value="5"
+                   oninput="tick('s-mood','v-mood',true,1,10,'')">
+            <div class="slider-ends"><span>Low</span><span>Great</span></div>
+        </div>
+    </div>
+
+    <!-- ── Nutrition & Hydration ── -->
+    <div class="card">
+        <div class="card-title">Nutrition &amp; Hydration</div>
+
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-label">🍽️ Meals / Snacks</span>
+                <span class="metric-value" id="v-meals">3</span>
+            </div>
+            <div class="metric-hint">How many meals or snacks did you have yesterday?</div>
+            <input type="range" id="s-meals" min="1" max="8" step="1" value="3"
+                   oninput="tick('s-meals','v-meals',true,1,8,'')">
+            <div class="slider-ends"><span>1</span><span>8</span></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-header">
+                <span class="metric-label">💧 Hydration</span>
+                <span class="metric-value" id="v-hydration">64</span>
+            </div>
+            <div class="metric-hint">How many oz of water did you drink yesterday?</div>
+            <input type="range" id="s-hydration" min="0" max="200" step="8" value="64"
+                   oninput="tick('s-hydration','v-hydration',true,0,200,' oz')">
+            <div class="slider-ends"><span>0 oz</span><span>200 oz</span></div>
+        </div>
+    </div>
+
+    <!-- ── Body Heat Map ── -->
+    <div class="card">
+        <div class="card-title">Pain / Soreness Location</div>
+        <div class="map-legend">
+            <span><span class="legend-dot" style="background:#fdd835;border:1px solid #f9a825"></span>1 tap = Soreness</span>
+            <span><span class="legend-dot" style="background:#e53935;border:1px solid #b71c1c"></span>2 taps = Pain</span>
+            <span><span class="legend-dot" style="background:#e8e8e8;border:1px solid #bbb"></span>3 taps = Clear</span>
+        </div>
+
+        <div class="body-map-wrap">
+
+            <!-- FRONT -->
+            <div class="body-view">
+                <h3>Front</h3>
+                <svg viewBox="0 0 110 270" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Head -->
+                    <ellipse class="br" data-r="Head" cx="55" cy="18" rx="15" ry="17"/>
+                    <!-- Neck -->
+                    <rect class="br" data-r="Neck" x="49" y="35" width="12" height="10" rx="3"/>
+                    <!-- L Shoulder -->
+                    <ellipse class="br" data-r="L Shoulder" cx="33" cy="52" rx="11" ry="9"/>
+                    <!-- R Shoulder -->
+                    <ellipse class="br" data-r="R Shoulder" cx="77" cy="52" rx="11" ry="9"/>
+                    <!-- Chest -->
+                    <rect class="br" data-r="Chest" x="40" y="45" width="30" height="28" rx="4"/>
+                    <!-- L Upper Arm -->
+                    <rect class="br" data-r="L Upper Arm" x="20" y="56" width="13" height="28" rx="5"/>
+                    <!-- R Upper Arm -->
+                    <rect class="br" data-r="R Upper Arm" x="77" y="56" width="13" height="28" rx="5"/>
+                    <!-- L Forearm -->
+                    <rect class="br" data-r="L Forearm" x="17" y="86" width="11" height="26" rx="4"/>
+                    <!-- R Forearm -->
+                    <rect class="br" data-r="R Forearm" x="82" y="86" width="11" height="26" rx="4"/>
+                    <!-- Core -->
+                    <rect class="br" data-r="Core / Abs" x="40" y="73" width="30" height="26" rx="2"/>
+                    <!-- L Hip -->
+                    <rect class="br" data-r="L Hip" x="35" y="99" width="17" height="16" rx="4"/>
+                    <!-- R Hip -->
+                    <rect class="br" data-r="R Hip" x="58" y="99" width="17" height="16" rx="4"/>
+                    <!-- L Quad -->
+                    <rect class="br" data-r="L Quad" x="34" y="117" width="17" height="40" rx="5"/>
+                    <!-- R Quad -->
+                    <rect class="br" data-r="R Quad" x="59" y="117" width="17" height="40" rx="5"/>
+                    <!-- L Knee -->
+                    <ellipse class="br" data-r="L Knee" cx="42" cy="162" rx="9" ry="7"/>
+                    <!-- R Knee -->
+                    <ellipse class="br" data-r="R Knee" cx="68" cy="162" rx="9" ry="7"/>
+                    <!-- L Shin -->
+                    <rect class="br" data-r="L Shin" x="34" y="170" width="16" height="38" rx="5"/>
+                    <!-- R Shin -->
+                    <rect class="br" data-r="R Shin" x="60" y="170" width="16" height="38" rx="5"/>
+                    <!-- L Foot -->
+                    <ellipse class="br" data-r="L Foot" cx="42" cy="215" rx="11" ry="6"/>
+                    <!-- R Foot -->
+                    <ellipse class="br" data-r="R Foot" cx="68" cy="215" rx="11" ry="6"/>
+                </svg>
+            </div>
+
+            <!-- BACK -->
+            <div class="body-view">
+                <h3>Back</h3>
+                <svg viewBox="0 0 110 270" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Head -->
+                    <ellipse class="br" data-r="Head (back)" cx="55" cy="18" rx="15" ry="17"/>
+                    <!-- Neck -->
+                    <rect class="br" data-r="Neck (back)" x="49" y="35" width="12" height="10" rx="3"/>
+                    <!-- L Trap -->
+                    <ellipse class="br" data-r="L Trap / Shoulder" cx="33" cy="52" rx="11" ry="9"/>
+                    <!-- R Trap -->
+                    <ellipse class="br" data-r="R Trap / Shoulder" cx="77" cy="52" rx="11" ry="9"/>
+                    <!-- Upper Back -->
+                    <rect class="br" data-r="Upper Back" x="40" y="45" width="30" height="20" rx="4"/>
+                    <!-- L Upper Arm (back) -->
+                    <rect class="br" data-r="L Upper Arm (back)" x="20" y="56" width="13" height="28" rx="5"/>
+                    <!-- R Upper Arm (back) -->
+                    <rect class="br" data-r="R Upper Arm (back)" x="77" y="56" width="13" height="28" rx="5"/>
+                    <!-- L Forearm (back) -->
+                    <rect class="br" data-r="L Forearm (back)" x="17" y="86" width="11" height="26" rx="4"/>
+                    <!-- R Forearm (back) -->
+                    <rect class="br" data-r="R Forearm (back)" x="82" y="86" width="11" height="26" rx="4"/>
+                    <!-- Mid Back -->
+                    <rect class="br" data-r="Mid Back" x="40" y="65" width="30" height="20" rx="2"/>
+                    <!-- Low Back -->
+                    <rect class="br" data-r="Low Back" x="40" y="85" width="30" height="16" rx="2"/>
+                    <!-- L Glute -->
+                    <rect class="br" data-r="L Glute" x="35" y="101" width="17" height="20" rx="5"/>
+                    <!-- R Glute -->
+                    <rect class="br" data-r="R Glute" x="58" y="101" width="17" height="20" rx="5"/>
+                    <!-- L Hamstring -->
+                    <rect class="br" data-r="L Hamstring" x="34" y="123" width="17" height="38" rx="5"/>
+                    <!-- R Hamstring -->
+                    <rect class="br" data-r="R Hamstring" x="59" y="123" width="17" height="38" rx="5"/>
+                    <!-- L Knee (back) -->
+                    <ellipse class="br" data-r="L Knee (back)" cx="42" cy="165" rx="9" ry="7"/>
+                    <!-- R Knee (back) -->
+                    <ellipse class="br" data-r="R Knee (back)" cx="68" cy="165" rx="9" ry="7"/>
+                    <!-- L Calf -->
+                    <rect class="br" data-r="L Calf" x="34" y="172" width="16" height="36" rx="5"/>
+                    <!-- R Calf -->
+                    <rect class="br" data-r="R Calf" x="60" y="172" width="16" height="36" rx="5"/>
+                    <!-- L Foot (back) -->
+                    <ellipse class="br" data-r="L Foot (back)" cx="42" cy="215" rx="11" ry="6"/>
+                    <!-- R Foot (back) -->
+                    <ellipse class="br" data-r="R Foot (back)" cx="68" cy="215" rx="11" ry="6"/>
+                </svg>
+            </div>
+
+        </div>
+
+        <div class="tag-row" id="tag-row">
+            <span style="font-size:.8rem;color:var(--muted)">No areas selected</span>
+        </div>
+    </div>
+
+    <!-- ── Notes ── -->
+    <div class="card">
+        <div class="card-title">Additional Notes</div>
+        <textarea id="f-notes" placeholder="Any injuries, concerns, or comments for the coaching/training staff…"></textarea>
+    </div>
+
+    <!-- ── Submit ── -->
+    <button class="submit-btn" id="sub-btn" onclick="submitForm()">
+        Submit Wellness Check-In
+    </button>
+    <div class="toast" id="toast"></div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+//  CONFIG — paste your Google Apps Script deployment URL below
+// ─────────────────────────────────────────────────────────────────────────────
+const SCRIPT_URL = 'YOUR_FOOTBALL_GOOGLE_APPS_SCRIPT_URL_HERE';
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Init date
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Slider update
+// ─────────────────────────────────────────────────────────────────────────────
+function tick(sliderId, valId, positive, min, max, suffix) {
+    const el  = document.getElementById(sliderId);
+    const vel = document.getElementById(valId);
+    const v   = parseFloat(el.value);
+    const pct = (v - min) / (max - min);
+    const score = positive ? pct : 1 - pct;
+
+    const color = score >= 0.6 ? '#2e7d32' : score >= 0.35 ? '#e65100' : '#c62828';
+    vel.textContent = v + suffix;
+    vel.style.color = color;
+
+    el.style.background =
+        `linear-gradient(to right, ${color} ${pct*100}%, #e0e0e0 ${pct*100}%)`;
+}
+
+// Init all sliders on load
+[
+    ['s-slp-h',     'v-slp-h',     true,  1,   12,  ''],
+    ['s-slp-q',     'v-slp-q',     true,  1,   10,  ''],
+    ['s-stress',    'v-stress',    false, 1,   10,  ''],
+    ['s-sore',      'v-sore',      false, 1,   10,  ''],
+    ['s-mood',      'v-mood',      true,  1,   10,  ''],
+    ['s-meals',     'v-meals',     true,  1,   8,   ''],
+    ['s-hydration', 'v-hydration', true,  0,   200, ' oz'],
+].forEach(args => tick(...args));
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Body map
+// ─────────────────────────────────────────────────────────────────────────────
+// Map of region → 'soreness' | 'pain'
+const selected = new Map();
+
+document.querySelectorAll('.br').forEach(el => {
+    el.addEventListener('click', () => {
+        const r     = el.dataset.r;
+        const state = selected.get(r);
+        const next  = state === undefined ? 'soreness' : state === 'soreness' ? 'pain' : null;
+
+        // Update all matching regions (front + back can share same label)
+        document.querySelectorAll(`.br[data-r="${r}"]`).forEach(node => {
+            node.classList.remove('soreness', 'pain');
+            if (next) node.classList.add(next);
+        });
+
+        if (next) selected.set(r, next);
+        else      selected.delete(r);
+
+        renderTags();
+    });
+});
+
+function renderTags() {
+    const row = document.getElementById('tag-row');
+    if (!selected.size) {
+        row.innerHTML = '<span style="font-size:.8rem;color:var(--muted)">No areas selected</span>';
+        return;
+    }
+    row.innerHTML = [...selected.entries()].map(([r, state]) =>
+        `<span class="tag ${state}">${r} <small>(${state})</small>
+            <button onclick="deselect('${r.replace(/'/g, "\\'")}')">×</button>
+         </span>`
+    ).join('');
+}
+
+function deselect(r) {
+    selected.delete(r);
+    document.querySelectorAll(`.br[data-r="${r}"]`).forEach(el => el.classList.remove('soreness', 'pain'));
+    renderTags();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Submit
+// ─────────────────────────────────────────────────────────────────────────────
+async function submitForm() {
+    const name  = document.getElementById('f-name').value.trim();
+    const date  = document.getElementById('f-date').value;
+    const sport = document.getElementById('f-sport').value;
+
+    if (!name)  { toast('Please enter your name.', 'err'); return; }
+    if (!sport) { toast('Please select your position.', 'err'); return; }
+    if (!date)  { toast('Please select a date.',    'err'); return; }
+
+    const payload = {
+        timestamp:    new Date().toISOString(),
+        date,
+        name,
+        sport,
+        dayType:      document.getElementById('f-day').value,
+        sleepHours:   document.getElementById('s-slp-h').value,
+        sleepQuality: document.getElementById('s-slp-q').value,
+        stress:       document.getElementById('s-stress').value,
+        soreness:     document.getElementById('s-sore').value,
+        mood:         document.getElementById('s-mood').value,
+        meals:        document.getElementById('s-meals').value,
+        hydration:    document.getElementById('s-hydration').value,
+        soreAreas:    [...selected.entries()].map(([r, s]) => `${r} (${s})`).join(', ') || 'None',
+        notes:        document.getElementById('f-notes').value.trim(),
+    };
+
+    const btn = document.getElementById('sub-btn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    // Demo mode — no URL configured
+    if (SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+        console.table(payload);
+        setTimeout(() => {
+            toast(`Demo mode — data logged to console.\nAdd your Google Apps Script URL to go live.`, 'ok');
+            btn.disabled = false;
+            btn.textContent = 'Submit Wellness Check-In';
+        }, 600);
+        return;
+    }
+
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const first = name.split(' ')[0];
+        toast(`✓ Submitted! Thanks, ${first}.`, 'ok');
+        resetForm();
+    } catch {
+        toast('Submission failed. Check your connection and try again.', 'err');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Submit Wellness Check-In';
+}
+
+function resetForm() {
+    ['f-name','f-notes'].forEach(id => document.getElementById(id).value = '');
+    ['f-sport','f-day'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('s-slp-h').value = 7;
+    document.getElementById('s-meals').value = 3;
+    document.getElementById('s-hydration').value = 64;
+    ['s-slp-q','s-stress','s-sore','s-mood'].forEach(id =>
+        document.getElementById(id).value = 5
+    );
+    [
+        ['s-slp-h',     'v-slp-h',     true,  1,   12,  ''],
+        ['s-slp-q',     'v-slp-q',     true,  1,   10,  ''],
+        ['s-stress',    'v-stress',     false, 1,   10,  ''],
+        ['s-sore',      'v-sore',      false, 1,   10,  ''],
+        ['s-mood',      'v-mood',      true,  1,   10,  ''],
+        ['s-meals',     'v-meals',     true,  1,   8,   ''],
+        ['s-hydration', 'v-hydration', true,  0,   200, ' oz'],
+    ].forEach(args => tick(...args));
+    selected.clear();
+    document.querySelectorAll('.br.soreness, .br.pain').forEach(el => el.classList.remove('soreness', 'pain'));
+    renderTags();
+}
+
+function toast(msg, type) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast ' + type;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
+
+<!--
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  GOOGLE APPS SCRIPT SETUP
+  1. Go to script.google.com → New Project
+  2. Paste the code below (replace everything in the editor)
+  3. Deploy → New deployment → Web app
+       Execute as: Me
+       Who has access: Anyone
+  4. Copy the deployment URL → paste into SCRIPT_URL above
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function doPost(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Wellness');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('Wellness');
+    const headers = [
+      'Timestamp','Date','Name','Sport','Day Type',
+      'Sleep Hours','Sleep Quality','Stress','Soreness','Mood / Energy',
+      'Meals','Hydration (oz)','Sore Areas','Notes'
+    ];
+    sheet.appendRow(headers);
+    const hdr = sheet.getRange(1, 1, 1, headers.length);
+    hdr.setBackground('#5C0000').setFontColor('white').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+
+  const d = JSON.parse(e.postData.contents);
+  sheet.appendRow([
+    d.timestamp, d.date, d.name, d.sport, d.dayType,
+    Number(d.sleepHours), Number(d.sleepQuality),
+    Number(d.stress), Number(d.soreness), Number(d.mood),
+    d.soreAreas, d.notes
+  ]);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: 'ok' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-->
+
+</body>
+</html>
