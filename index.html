@@ -473,8 +473,8 @@
                 <svg id="plate-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"
                      style="width:215px;height:215px;display:block;margin:10px auto 4px;touch-action:manipulation;"></svg>
                 <div class="plate-legend">
-                    <span><span class="pl-dot" style="background:#e0e0e0;border:1px solid #ccc"></span>0 servings</span>
-                    <span><span class="pl-dot" style="background:#ef9a9a"></span>1–2 servings</span>
+                    <span><span class="pl-dot" style="background:#ef9a9a"></span>0 servings</span>
+                    <span><span class="pl-dot" style="background:#ffcc80"></span>1–2 servings</span>
                     <span><span class="pl-dot" style="background:#a5d6a7"></span>3+ servings</span>
                 </div>
             </div>
@@ -750,8 +750,8 @@ function incrementPlate(id) {
 
 function updatePlateSection(id) {
     const n = plateCounts[id];
-    const fills  = ['#e0e0e0','#ef9a9a','#ffcc80','#a5d6a7','#a5d6a7','#a5d6a7'];
-    const tfills = ['#aaa',   '#c62828','#e65100','#2e7d32','#2e7d32','#2e7d32'];
+    const fills  = ['#ef9a9a','#ffcc80','#ffcc80','#a5d6a7','#a5d6a7','#a5d6a7'];
+    const tfills = ['#c62828','#e65100','#e65100','#2e7d32','#2e7d32','#2e7d32'];
     document.getElementById('pw-' + id).setAttribute('fill', fills[n]);
     const ct = document.getElementById('pt-' + id);
     ct.textContent = n;
