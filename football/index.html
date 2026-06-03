@@ -778,7 +778,8 @@ buildPlate();
 // ─────────────────────────────────────────────────────────────────────────────
 //  Hydration Bottles  (1 tap = half bottle = 16 oz · 2 taps = full = 32 oz)
 // ─────────────────────────────────────────────────────────────────────────────
-let hydrationHalves = 0;  // 0–16 half-bottles
+let hydrationHalves = 0;   // 0–16 half-bottles
+let hydrationGoingDown = false;
 
 const BODY_PATH = 'M6 11 Q5 14 5 18 L5 48 Q5 52 9 54 L19 54 Q23 52 23 48 L23 18 Q23 14 22 11 Q18 10 14 10 Q10 10 6 11 Z';
 
@@ -827,11 +828,19 @@ function buildBottles() {
 function selectBottle(i) {
     const state = getBottleState(i);
     if (state === 'empty') {
-        hydrationHalves = i * 2 - 1;          // → half
+        hydrationHalves   = i * 2 - 1;          // tap 1 → half
+        hydrationGoingDown = false;
     } else if (state === 'half') {
-        hydrationHalves = i * 2;               // → full
-    } else {                                   // full
-        hydrationHalves = hydrationHalves > i * 2 ? i * 2 : i * 2 - 1;  // trim or → half
+        if (hydrationGoingDown) {
+            hydrationHalves   = (i - 1) * 2;    // tap 4 → fully empty this bottle
+            hydrationGoingDown = true;
+        } else {
+            hydrationHalves   = i * 2;           // tap 2 → full
+            hydrationGoingDown = false;
+        }
+    } else {                                     // full
+        hydrationHalves   = hydrationHalves > i * 2 ? i * 2 : i * 2 - 1;  // tap 3 → half (or trim)
+        hydrationGoingDown = true;
     }
     updateBottles();
 }
@@ -844,7 +853,8 @@ function updateBottles() {
 }
 
 function resetBottles() {
-    hydrationHalves = 0;
+    hydrationHalves    = 0;
+    hydrationGoingDown = false;
     updateBottles();
 }
 
