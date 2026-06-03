@@ -776,24 +776,37 @@ function resetPlate() {
 buildPlate();
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Hydration Bottles
+//  Hydration Bottles  (1 tap = half bottle = 16 oz · 2 taps = full = 32 oz)
 // ─────────────────────────────────────────────────────────────────────────────
-let hydrationCount = 0;
+let hydrationHalves = 0;  // 0–16 half-bottles
 
-function bottleSVG(filled) {
-    const body   = filled ? '#0288D1' : '#e0e0e0';
-    const cap    = filled ? '#01579B' : '#9e9e9e';
-    const stroke = filled ? '#0277BD' : '#bdbdbd';
-    const label  = filled ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.05)';
-    const line   = filled ? 'rgba(255,255,255,0.3)'  : 'rgba(0,0,0,0.1)';
+const BODY_PATH = 'M6 11 Q5 14 5 18 L5 48 Q5 52 9 54 L19 54 Q23 52 23 48 L23 18 Q23 14 22 11 Q18 10 14 10 Q10 10 6 11 Z';
+
+function bottleSVG(state, idx) {
+    const isFull = state === 'full';
+    const isHalf = state === 'half';
+    const body   = isFull ? '#0288D1' : '#e0e0e0';
+    const cap    = isFull ? '#01579B' : '#9e9e9e';
+    const stroke = isFull ? '#0277BD' : '#bdbdbd';
+    const label  = isFull ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.05)';
+    const line   = (isFull || isHalf) ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.1)';
+    const cid    = `hc${idx}`;
     return `<svg viewBox="0 0 28 66" xmlns="http://www.w3.org/2000/svg">
+      ${isHalf ? `<defs><clipPath id="${cid}"><rect x="0" y="33" width="28" height="33"/></clipPath></defs>` : ''}
       <rect x="8" y="1" width="12" height="6" rx="2" fill="${cap}"/>
       <rect x="10" y="7" width="8" height="4" fill="${body}" stroke="${stroke}" stroke-width="1"/>
-      <path d="M6 11 Q5 14 5 18 L5 48 Q5 52 9 54 L19 54 Q23 52 23 48 L23 18 Q23 14 22 11 Q18 10 14 10 Q10 10 6 11 Z" fill="${body}" stroke="${stroke}" stroke-width="1.5"/>
+      <path d="${BODY_PATH}" fill="${body}" stroke="${stroke}" stroke-width="1.5"/>
+      ${isHalf ? `<path d="${BODY_PATH}" fill="#0288D1" clip-path="url(#${cid})"/>` : ''}
       <rect x="7" y="26" width="14" height="9" rx="1.5" fill="${label}"/>
       <line x1="5" y1="37" x2="23" y2="37" stroke="${line}" stroke-width="1.5"/>
       <line x1="5" y1="40" x2="23" y2="40" stroke="${line}" stroke-width="1.5"/>
     </svg>`;
+}
+
+function getBottleState(i) {
+    if (hydrationHalves >= i * 2)     return 'full';
+    if (hydrationHalves === i * 2 - 1) return 'half';
+    return 'empty';
 }
 
 function buildBottles() {
@@ -805,26 +818,33 @@ function buildBottles() {
         btn.id = 'bottle-' + i;
         btn.setAttribute('type', 'button');
         btn.setAttribute('aria-label', (i * 32) + ' oz');
-        btn.innerHTML = bottleSVG(false);
+        btn.innerHTML = bottleSVG('empty', i);
         btn.addEventListener('click', () => selectBottle(i));
         wrap.appendChild(btn);
     }
 }
 
-function selectBottle(n) {
-    hydrationCount = hydrationCount === n ? n - 1 : n;
+function selectBottle(i) {
+    const state = getBottleState(i);
+    if (state === 'empty') {
+        hydrationHalves = i * 2 - 1;          // → half
+    } else if (state === 'half') {
+        hydrationHalves = i * 2;               // → full
+    } else {                                   // full
+        hydrationHalves = hydrationHalves > i * 2 ? i * 2 : i * 2 - 1;  // trim or → half
+    }
     updateBottles();
 }
 
 function updateBottles() {
     for (let i = 1; i <= 8; i++) {
-        document.getElementById('bottle-' + i).innerHTML = bottleSVG(i <= hydrationCount);
+        document.getElementById('bottle-' + i).innerHTML = bottleSVG(getBottleState(i), i);
     }
-    document.getElementById('v-hydration').textContent = (hydrationCount * 32) + ' oz';
+    document.getElementById('v-hydration').textContent = (hydrationHalves * 16) + ' oz';
 }
 
 function resetBottles() {
-    hydrationCount = 0;
+    hydrationHalves = 0;
     updateBottles();
 }
 
@@ -900,7 +920,7 @@ async function submitForm() {
         protein:      plateCounts.protein,
         carbs:        plateCounts.carbs,
         fruitsVeg:    plateCounts.fv,
-        hydration:    hydrationCount * 32,
+        hydration:    hydrationHalves * 16,
         soreAreas:    [...selected.entries()].map(([r, s]) => `${r} (${s})`).join(', ') || 'None',
         notes:        document.getElementById('f-notes').value.trim(),
     };
