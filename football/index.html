@@ -192,6 +192,32 @@
             margin-right: 3px;
         }
 
+        /* ── Bottles ── */
+        .bottles-wrap {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 240px;
+            margin: 12px auto 4px;
+        }
+        .bottle-btn {
+            background: none;
+            border: none;
+            padding: 4px 2px;
+            cursor: pointer;
+            transition: transform .1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bottle-btn:active { transform: scale(.9); }
+        .bottle-btn svg { width: 100%; height: auto; display: block; }
+        .hydration-display {
+            text-align: center;
+            font-size: .85rem;
+            font-weight: 700;
+            color: var(--maroon);
+            margin-top: 4px;
+        }
+
         /* ── Body Map ── */
         .body-map-wrap {
             display: flex;
@@ -473,12 +499,10 @@
         <div class="metric">
             <div class="metric-header">
                 <span class="metric-label">💧 Hydration</span>
-                <span class="metric-value" id="v-hydration">64</span>
             </div>
-            <div class="metric-hint">How many oz of water did you drink yesterday?</div>
-            <input type="range" id="s-hydration" min="0" max="200" step="8" value="64"
-                   oninput="tick('s-hydration','v-hydration',true,0,200,' oz')">
-            <div class="slider-ends"><span>0 oz</span><span>200 oz</span></div>
+            <div class="metric-hint">How many bottles did you drink yesterday? (Each = 32 oz)</div>
+            <div class="bottles-wrap" id="bottles-wrap"></div>
+            <div class="hydration-display" id="v-hydration">0 oz</div>
         </div>
     </div>
 
@@ -646,7 +670,6 @@ function tick(sliderId, valId, positive, min, max, suffix) {
     ['s-stress',    'v-stress',    false, 1,   10,  ''],
     ['s-sore',      'v-sore',      false, 1,   10,  ''],
     ['s-mood',      'v-mood',      true,  1,   10,  ''],
-    ['s-hydration', 'v-hydration', true,  0,   200, ' oz'],
 ].forEach(args => tick(...args));
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -753,6 +776,61 @@ function resetPlate() {
 buildPlate();
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  Hydration Bottles
+// ─────────────────────────────────────────────────────────────────────────────
+let hydrationCount = 0;
+
+function bottleSVG(filled) {
+    const body   = filled ? '#0288D1' : '#e0e0e0';
+    const cap    = filled ? '#01579B' : '#9e9e9e';
+    const stroke = filled ? '#0277BD' : '#bdbdbd';
+    const label  = filled ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.05)';
+    const line   = filled ? 'rgba(255,255,255,0.3)'  : 'rgba(0,0,0,0.1)';
+    return `<svg viewBox="0 0 28 66" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="1" width="12" height="6" rx="2" fill="${cap}"/>
+      <rect x="10" y="7" width="8" height="4" fill="${body}" stroke="${stroke}" stroke-width="1"/>
+      <path d="M6 11 Q5 14 5 18 L5 48 Q5 52 9 54 L19 54 Q23 52 23 48 L23 18 Q23 14 22 11 Q18 10 14 10 Q10 10 6 11 Z" fill="${body}" stroke="${stroke}" stroke-width="1.5"/>
+      <rect x="7" y="26" width="14" height="9" rx="1.5" fill="${label}"/>
+      <line x1="5" y1="37" x2="23" y2="37" stroke="${line}" stroke-width="1.5"/>
+      <line x1="5" y1="40" x2="23" y2="40" stroke="${line}" stroke-width="1.5"/>
+    </svg>`;
+}
+
+function buildBottles() {
+    const wrap = document.getElementById('bottles-wrap');
+    wrap.innerHTML = '';
+    for (let i = 1; i <= 8; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'bottle-btn';
+        btn.id = 'bottle-' + i;
+        btn.setAttribute('type', 'button');
+        btn.setAttribute('aria-label', (i * 32) + ' oz');
+        btn.innerHTML = bottleSVG(false);
+        btn.addEventListener('click', () => selectBottle(i));
+        wrap.appendChild(btn);
+    }
+}
+
+function selectBottle(n) {
+    hydrationCount = hydrationCount === n ? n - 1 : n;
+    updateBottles();
+}
+
+function updateBottles() {
+    for (let i = 1; i <= 8; i++) {
+        document.getElementById('bottle-' + i).innerHTML = bottleSVG(i <= hydrationCount);
+    }
+    document.getElementById('v-hydration').textContent = (hydrationCount * 32) + ' oz';
+}
+
+function resetBottles() {
+    hydrationCount = 0;
+    updateBottles();
+}
+
+buildBottles();
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Body map
 // ─────────────────────────────────────────────────────────────────────────────
 // Map of region → 'soreness' | 'pain'
@@ -822,7 +900,7 @@ async function submitForm() {
         protein:      plateCounts.protein,
         carbs:        plateCounts.carbs,
         fruitsVeg:    plateCounts.fv,
-        hydration:    document.getElementById('s-hydration').value,
+        hydration:    hydrationCount * 32,
         soreAreas:    [...selected.entries()].map(([r, s]) => `${r} (${s})`).join(', ') || 'None',
         notes:        document.getElementById('f-notes').value.trim(),
     };
@@ -864,19 +942,18 @@ function resetForm() {
     ['f-name','f-notes'].forEach(id => document.getElementById(id).value = '');
     ['f-sport','f-day'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('s-slp-h').value = 7;
-    document.getElementById('s-hydration').value = 64;
     ['s-slp-q','s-stress','s-sore','s-mood'].forEach(id =>
         document.getElementById(id).value = 5
     );
     [
-        ['s-slp-h',     'v-slp-h',     true,  1,   12,  ''],
-        ['s-slp-q',     'v-slp-q',     true,  1,   10,  ''],
-        ['s-stress',    'v-stress',    false, 1,   10,  ''],
-        ['s-sore',      'v-sore',      false, 1,   10,  ''],
-        ['s-mood',      'v-mood',      true,  1,   10,  ''],
-        ['s-hydration', 'v-hydration', true,  0,   200, ' oz'],
+        ['s-slp-h', 'v-slp-h',  true,  1, 12, ''],
+        ['s-slp-q', 'v-slp-q',  true,  1, 10, ''],
+        ['s-stress','v-stress',  false, 1, 10, ''],
+        ['s-sore',  'v-sore',   false, 1, 10, ''],
+        ['s-mood',  'v-mood',   true,  1, 10, ''],
     ].forEach(args => tick(...args));
     resetPlate();
+    resetBottles();
     selected.clear();
     document.querySelectorAll('.br.soreness, .br.pain').forEach(el => el.classList.remove('soreness', 'pain'));
     renderTags();
