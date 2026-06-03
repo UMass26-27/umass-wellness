@@ -172,6 +172,26 @@
             margin-top: 4px;
         }
 
+        /* ── Plate ── */
+        .plate-wrap { text-align: center; }
+        .plate-legend {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            font-size: .78rem;
+            color: var(--muted);
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+        .pl-dot {
+            display: inline-block;
+            width: 13px; height: 13px;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin-right: 3px;
+        }
+
         /* ── Body Map ── */
         .body-map-wrap {
             display: flex;
@@ -436,13 +456,18 @@
 
         <div class="metric">
             <div class="metric-header">
-                <span class="metric-label">🍽️ Meals / Snacks</span>
-                <span class="metric-value" id="v-meals">3</span>
+                <span class="metric-label">🍽️ Yesterday's Plate</span>
             </div>
-            <div class="metric-hint">How many meals or snacks did you have yesterday?</div>
-            <input type="range" id="s-meals" min="1" max="8" step="1" value="3"
-                   oninput="tick('s-meals','v-meals',true,1,8,'')">
-            <div class="slider-ends"><span>1</span><span>8</span></div>
+            <div class="metric-hint">Tap each section to count servings · tap at 5 to reset to 0</div>
+            <div class="plate-wrap">
+                <svg id="plate-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"
+                     style="width:215px;height:215px;display:block;margin:10px auto 4px;touch-action:manipulation;"></svg>
+                <div class="plate-legend">
+                    <span><span class="pl-dot" style="background:#e0e0e0;border:1px solid #ccc"></span>0 servings</span>
+                    <span><span class="pl-dot" style="background:#ef9a9a"></span>1–2 servings</span>
+                    <span><span class="pl-dot" style="background:#a5d6a7"></span>3+ servings</span>
+                </div>
+            </div>
         </div>
 
         <div class="metric">
@@ -621,9 +646,111 @@ function tick(sliderId, valId, positive, min, max, suffix) {
     ['s-stress',    'v-stress',    false, 1,   10,  ''],
     ['s-sore',      'v-sore',      false, 1,   10,  ''],
     ['s-mood',      'v-mood',      true,  1,   10,  ''],
-    ['s-meals',     'v-meals',     true,  1,   8,   ''],
     ['s-hydration', 'v-hydration', true,  0,   200, ' oz'],
 ].forEach(args => tick(...args));
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Plate
+// ─────────────────────────────────────────────────────────────────────────────
+const plateCounts = { protein: 0, carbs: 0, fv: 0 };
+
+function buildPlate() {
+    const cx = 120, cy = 120, OR = 98, IR = 30;
+    const sections = [
+        { id: 'protein', label: 'Protein', startDeg: 213, endDeg: 327, centerDeg: 270 },
+        { id: 'carbs',   label: 'Carbs',   startDeg: 333, endDeg: 87,  centerDeg: 30  },
+        { id: 'fv',      label: 'F & Veg', startDeg: 93,  endDeg: 207, centerDeg: 150 }
+    ];
+    const svg = document.getElementById('plate-svg');
+    svg.innerHTML = '';
+
+    const rim = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    rim.setAttribute('cx', cx); rim.setAttribute('cy', cy);
+    rim.setAttribute('r', OR + 11);
+    rim.setAttribute('fill', '#eeeeee');
+    rim.setAttribute('stroke', '#ccc');
+    rim.setAttribute('stroke-width', '5');
+    svg.appendChild(rim);
+
+    sections.forEach(s => {
+        const toR  = d => d * Math.PI / 180;
+        const sR   = toR(s.startDeg), eR = toR(s.endDeg);
+        const span = ((s.endDeg - s.startDeg) + 360) % 360;
+        const la   = span > 180 ? 1 : 0;
+        const pt   = (r, rad) => [cx + rad * Math.cos(r), cy + rad * Math.sin(r)];
+        const [ox1,oy1] = pt(sR, OR), [ox2,oy2] = pt(eR, OR);
+        const [ix2,iy2] = pt(eR, IR), [ix1,iy1] = pt(sR, IR);
+        const d = `M ${ox1.toFixed(1)} ${oy1.toFixed(1)} A ${OR} ${OR} 0 ${la} 1 ${ox2.toFixed(1)} ${oy2.toFixed(1)} L ${ix2.toFixed(1)} ${iy2.toFixed(1)} A ${IR} ${IR} 0 ${la} 0 ${ix1.toFixed(1)} ${iy1.toFixed(1)} Z`;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('id', 'pw-' + s.id);
+        path.setAttribute('fill', '#e0e0e0');
+        path.setAttribute('stroke', 'white');
+        path.setAttribute('stroke-width', '4');
+        path.style.cursor = 'pointer';
+        path.style.transition = 'fill .2s';
+        path.addEventListener('click', () => incrementPlate(s.id));
+        svg.appendChild(path);
+
+        const midR = (OR + IR) / 2;
+        const cR   = toR(s.centerDeg);
+        const lx   = (cx + midR * Math.cos(cR)).toFixed(1);
+        const ly   = (cy + midR * Math.sin(cR)).toFixed(1);
+
+        const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        lbl.setAttribute('x', lx); lbl.setAttribute('y', (parseFloat(ly) - 11).toFixed(1));
+        lbl.setAttribute('text-anchor', 'middle');
+        lbl.setAttribute('font-size', '9');
+        lbl.setAttribute('font-family', 'sans-serif');
+        lbl.setAttribute('font-weight', '700');
+        lbl.setAttribute('fill', '#666');
+        lbl.setAttribute('pointer-events', 'none');
+        lbl.textContent = s.label;
+        svg.appendChild(lbl);
+
+        const cnt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        cnt.setAttribute('x', lx); cnt.setAttribute('y', (parseFloat(ly) + 9).toFixed(1));
+        cnt.setAttribute('text-anchor', 'middle');
+        cnt.setAttribute('font-size', '22');
+        cnt.setAttribute('font-family', 'sans-serif');
+        cnt.setAttribute('font-weight', '700');
+        cnt.setAttribute('fill', '#aaa');
+        cnt.setAttribute('id', 'pt-' + s.id);
+        cnt.setAttribute('pointer-events', 'none');
+        cnt.textContent = '0';
+        svg.appendChild(cnt);
+    });
+
+    const cir = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    cir.setAttribute('cx', cx); cir.setAttribute('cy', cy);
+    cir.setAttribute('r', IR - 3);
+    cir.setAttribute('fill', 'white');
+    cir.setAttribute('stroke', '#ddd');
+    cir.setAttribute('stroke-width', '1');
+    svg.appendChild(cir);
+}
+
+function incrementPlate(id) {
+    plateCounts[id] = plateCounts[id] >= 5 ? 0 : plateCounts[id] + 1;
+    updatePlateSection(id);
+}
+
+function updatePlateSection(id) {
+    const n = plateCounts[id];
+    const fills  = ['#e0e0e0','#ef9a9a','#ffcc80','#a5d6a7','#a5d6a7','#a5d6a7'];
+    const tfills = ['#aaa',   '#c62828','#e65100','#2e7d32','#2e7d32','#2e7d32'];
+    document.getElementById('pw-' + id).setAttribute('fill', fills[n]);
+    const ct = document.getElementById('pt-' + id);
+    ct.textContent = n;
+    ct.setAttribute('fill', tfills[n]);
+}
+
+function resetPlate() {
+    ['protein','carbs','fv'].forEach(id => { plateCounts[id] = 0; updatePlateSection(id); });
+}
+
+buildPlate();
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Body map
@@ -692,7 +819,9 @@ async function submitForm() {
         stress:       document.getElementById('s-stress').value,
         soreness:     document.getElementById('s-sore').value,
         mood:         document.getElementById('s-mood').value,
-        meals:        document.getElementById('s-meals').value,
+        protein:      plateCounts.protein,
+        carbs:        plateCounts.carbs,
+        fruitsVeg:    plateCounts.fv,
         hydration:    document.getElementById('s-hydration').value,
         soreAreas:    [...selected.entries()].map(([r, s]) => `${r} (${s})`).join(', ') || 'None',
         notes:        document.getElementById('f-notes').value.trim(),
@@ -735,7 +864,6 @@ function resetForm() {
     ['f-name','f-notes'].forEach(id => document.getElementById(id).value = '');
     ['f-sport','f-day'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('s-slp-h').value = 7;
-    document.getElementById('s-meals').value = 3;
     document.getElementById('s-hydration').value = 64;
     ['s-slp-q','s-stress','s-sore','s-mood'].forEach(id =>
         document.getElementById(id).value = 5
@@ -743,12 +871,12 @@ function resetForm() {
     [
         ['s-slp-h',     'v-slp-h',     true,  1,   12,  ''],
         ['s-slp-q',     'v-slp-q',     true,  1,   10,  ''],
-        ['s-stress',    'v-stress',     false, 1,   10,  ''],
+        ['s-stress',    'v-stress',    false, 1,   10,  ''],
         ['s-sore',      'v-sore',      false, 1,   10,  ''],
         ['s-mood',      'v-mood',      true,  1,   10,  ''],
-        ['s-meals',     'v-meals',     true,  1,   8,   ''],
         ['s-hydration', 'v-hydration', true,  0,   200, ' oz'],
     ].forEach(args => tick(...args));
+    resetPlate();
     selected.clear();
     document.querySelectorAll('.br.soreness, .br.pain').forEach(el => el.classList.remove('soreness', 'pain'));
     renderTags();
